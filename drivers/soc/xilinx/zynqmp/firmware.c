@@ -57,8 +57,8 @@ int zynqmp_pm_ret_code(u32 ret_status)
 	}
 }
 
-static noinline int do_fw_call_fail(u64 arg0, u64 arg1, u64 arg2,
-				    u32 *ret_payload)
+static noinline int do_fw_call_fail(u32 arg0, u32 arg1, u32 arg2,
+				    u32 arg3, u32 arg4, u32 *ret_payload)
 {
 	return -ENODEV;
 }
@@ -67,32 +67,34 @@ static noinline int do_fw_call_fail(u64 arg0, u64 arg1, u64 arg2,
  * PM function call wrapper
  * Invoke do_fw_call_smc or do_fw_call_hvc, depending on the configuration
  */
-static int (*do_fw_call)(u64, u64, u64, u32 *ret_payload) = do_fw_call_fail;
+static int (*do_fw_call)(u32, u32, u32, u32, u32, u32 *ret_payload) = do_fw_call_fail;
 
 /**
  * do_fw_call_smc - Call system-level power management layer (SMC)
  * @arg0:		Argument 0 to SMC call
  * @arg1:		Argument 1 to SMC call
  * @arg2:		Argument 2 to SMC call
+ * @arg3:		Argument 3 to SMC call
+ * @arg4:		Argument 4 to SMC call
  * @ret_payload:	Returned value array
  *
  * Return:		Returns status, either success or error+reason
  *
  * Invoke power management function via SMC call (no hypervisor present)
  */
-static noinline int do_fw_call_smc(u64 arg0, u64 arg1, u64 arg2,
-						u32 *ret_payload)
+static noinline int do_fw_call_smc(u32 arg0, u32 arg1, u32 arg2,
+						 u32 arg3, u32 arg4, u32 *ret_payload)
 {
 	struct arm_smccc_res res;
 
-	arm_smccc_smc(arg0, arg1, arg2, 0, 0, 0, 0, 0, &res);
+	arm_smccc_smc(arg0, arg1, arg2, arg3, arg4, 0, 0, 0, &res);
 
 	if (ret_payload != NULL) {
-		ret_payload[0] = (u32)res.a0;
-		ret_payload[1] = (u32)(res.a0 >> 32);
-		ret_payload[2] = (u32)res.a1;
-		ret_payload[3] = (u32)(res.a1 >> 32);
-		ret_payload[4] = (u32)res.a2;
+		ret_payload[0] = res.a0;
+		ret_payload[1] = res.a1;
+		ret_payload[2] = res.a2;
+		ret_payload[3] = res.a3;
+		// ret_payload[4] = res.a4;
 	}
 
 	return zynqmp_pm_ret_code((enum pm_ret_status)res.a0);
@@ -103,6 +105,8 @@ static noinline int do_fw_call_smc(u64 arg0, u64 arg1, u64 arg2,
  * @arg0:		Argument 0 to HVC call
  * @arg1:		Argument 1 to HVC call
  * @arg2:		Argument 2 to HVC call
+ * @arg3:		Argument 3 to HVC call
+ * @arg4:		Argument 4 to HVC call
  * @ret_payload:	Returned value array
  *
  * Return:		Returns status, either success or error+reason
@@ -111,19 +115,19 @@ static noinline int do_fw_call_smc(u64 arg0, u64 arg1, u64 arg2,
  * HVC-based for communication through hypervisor
  * (no direct communication with ATF)
  */
-static noinline int do_fw_call_hvc(u64 arg0, u64 arg1, u64 arg2,
-						u32 *ret_payload)
+static noinline int do_fw_call_hvc(u32 arg0, u32 arg1, u32 arg2,
+						u32 arg3, u32 arg4, u32 *ret_payload)
 {
 	struct arm_smccc_res res;
 
-	arm_smccc_hvc(arg0, arg1, arg2, 0, 0, 0, 0, 0, &res);
+	arm_smccc_hvc(arg0, arg1, arg2, arg3, arg4, 0, 0, 0, &res);
 
 	if (ret_payload != NULL) {
-		ret_payload[0] = (u32)res.a0;
-		ret_payload[1] = (u32)(res.a0 >> 32);
-		ret_payload[2] = (u32)res.a1;
-		ret_payload[3] = (u32)(res.a1 >> 32);
-		ret_payload[4] = (u32)res.a2;
+		ret_payload[0] = res.a0;
+		ret_payload[1] = res.a1;
+		ret_payload[2] = res.a2;
+		ret_payload[3] = res.a3;
+		// ret_payload[4] = res.a4;
 	}
 
 	return zynqmp_pm_ret_code((enum pm_ret_status)res.a0);
@@ -161,13 +165,16 @@ int invoke_pm_fn(u32 pm_api_id, u32 arg0, u32 arg1, u32 arg2, u32 arg3,
 	 * Added SIP service call Function Identifier
 	 * Make sure to stay in x0 register
 	 */
-	u64 smc_arg[4];
+	u32 smc_arg[5];
 
 	smc_arg[0] = PM_SIP_SVC | pm_api_id;
-	smc_arg[1] = ((u64)arg1 << 32) | arg0;
-	smc_arg[2] = ((u64)arg3 << 32) | arg2;
+	smc_arg[1] = arg0;
+	smc_arg[2] = arg1;
+	smc_arg[3] = arg2;
+	smc_arg[4] = arg3;
 
-	return do_fw_call(smc_arg[0], smc_arg[1], smc_arg[2], ret_payload);
+	return do_fw_call(smc_arg[0], smc_arg[1], smc_arg[2],
+						smc_arg[3], smc_arg[4], ret_payload);
 }
 
 static u32 pm_api_version;

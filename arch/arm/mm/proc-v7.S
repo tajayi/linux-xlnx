@@ -505,6 +505,7 @@ __errata_finish:
 #endif
 	dsb					@ Complete invalidations
 #ifndef CONFIG_ARM_THUMBEE
+#ifndef CONFIG_ARCH_ZYNQMP		@ HACK!!! Commenting out for bug on zcu102
 	mrc	p15, 0, r0, c0, c1, 0		@ read ID_PFR0 for ThumbEE
 	and	r0, r0, #(0xf << 12)		@ ThumbEE enabled field
 	teq	r0, #(1 << 12)			@ check if ThumbEE is present
@@ -515,6 +516,7 @@ __errata_finish:
 	orr	r0, r0, #1			@ set the 1st bit in order to
 	mcr	p14, 6, r0, c0, c0, 0		@ stop userspace TEEHBR access
 1:
+#endif
 #endif
 	adr	r3, v7_crval
 	ldmia	r3, {r3, r6}
@@ -597,7 +599,7 @@ __v7_ca5mp_proc_info:
 	 */
 	.type   __v7_ca9mp_proc_info, #object
 __v7_ca9mp_proc_info:
-	.long	0x410fc090
+	.long	0x410fd034
 	.long	0xff0ffff0
 	__v7_proc __v7_ca9mp_proc_info, __v7_ca9mp_setup, proc_fns = ca9mp_processor_functions
 	.size	__v7_ca9mp_proc_info, . - __v7_ca9mp_proc_info

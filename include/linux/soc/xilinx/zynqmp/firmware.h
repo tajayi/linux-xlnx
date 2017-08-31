@@ -30,7 +30,13 @@
 					ZYNQMP_PM_VERSION_MINOR)
 
 /* SMC SIP service Call Function Identifier Prefix */
+
+#ifdef CONFIG_ARM
+#define PM_SIP_SVC	0x82000000
+#else
 #define PM_SIP_SVC	0xC2000000
+#endif
+
 #define GET_CALLBACK_DATA 0xa01
 #define SET_SUSPEND_MODE  0xa02
 
