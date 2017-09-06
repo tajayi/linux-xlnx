@@ -83,8 +83,13 @@ static int zynqmp_fpga_ops_write(struct fpga_manager *mgr,
 						ENCRYPTED_IV_LEN);
 	}
 
+#ifdef CONFIG_64BIT
 	__flush_cache_user_range((unsigned long)kbuf,
 				 (unsigned long)kbuf + dma_size);
+#else
+	__cpuc_coherent_user_range((unsigned long)kbuf,
+				 (unsigned long)kbuf + dma_size);
+#endif
 
 	/**
 	 * Translate size from bytes to number of 32bit words that
