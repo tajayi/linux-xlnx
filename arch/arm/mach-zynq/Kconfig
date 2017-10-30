@@ -24,6 +24,7 @@ config ARCH_ZYNQMP
 	select CONFIG_ZYNQMP_RESET_CONTROLLER
 	select PINCTRL
 	select PINCTRL_ZYNQMP
+	select ARM_CCI400_PORT_CTRL
 	help
 	  This enables support for Xilinx ZynqMP Family in 32-bit mode
 
